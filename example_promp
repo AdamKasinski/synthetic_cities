@@ -1,0 +1,146 @@
+PURPOSE
+
+Generate a planar, connected, polygon-based synthetic road network inspired by the high-level structure of Warsaw’s Ochota district. The generated graph will serve as a seed for Voronoi-based refinement, so it must form closed regions suitable for further subdivision. The output should preserve the general spatial character and road-length distribution of the reference while remaining original rather than copied.
+
+INPUT FILES
+
+- Reference graph: data/ochota_level1_clean.json
+- Reference road lengths: data/ochota_road_lengths.csv
+- Output directory: outputs/deepseek_results/
+- Output graph filename: deepseek_graph_X.json
+- Output road-length filename: deepseek_lengths_X.csv
+
+FILE MANAGEMENT
+
+Before starting:
+1. Check the output directory.
+2. Count the existing output graph files.
+3. Use the next available integer ID X.
+4. Save the generated graph as deepseek_graph_X.json.
+5. Save the generated road lengths as deepseek_lengths_X.csv.
+
+CORE GRAPH REQUIREMENTS
+
+1. CONNECTED
+   The graph must be fully connected: every node must be reachable from every other node. No isolated nodes or disconnected components are allowed.
+
+2. PLANAR
+   The graph must be planar. No edges may cross geometrically.
+
+3. CLOSED OUTER BOUNDARY
+   The graph must contain an enclosing outer ring or perimeter that surrounds the internal structure. This is necessary for Voronoi-based refinement.
+
+4. POLYGON-BASED INTERIOR
+   The interior should be divided into polygonal cells (closed cycles), not just disconnected line segments or open chains.
+
+5. SIMILAR BUT ORIGINAL
+   The graph should be inspired by the spatial structure of the reference district, but it must not copy the reference coordinates or geometry directly. Generate a new, original layout with a similar overall character.
+
+6. REALISTIC STRUCTURE
+   The graph should include realistic junctions, with some nodes of degree 3 or 4. Avoid producing a structure that consists mostly of degree-2 chains.
+
+WORKFLOW
+
+Maximum number of iterations: 30
+
+1. Read the reference graph to understand the spatial structure of the Ochota district.
+2. Read the reference road-length file to understand the target edge-length distribution.
+3. Construct a candidate planar graph manually.
+4. Ensure that the graph:
+   - is fully connected,
+   - has a closed outer boundary,
+   - contains polygonal interior regions,
+   - is original rather than copied from the reference.
+5. Validate the graph using the planarity tool.
+6. Compute the road lengths implied by the candidate graph.
+7. Compare the candidate road-length distribution to the reference using the Wasserstein metric.
+8. If either validation fails, adjust the graph and repeat.
+9. Save the graph and road lengths only when all validation criteria are satisfied.
+
+VALIDATION CRITERIA
+
+A candidate graph is valid only if all of the following hold:
+
+1. check_planarity returns is_planar = true
+2. The Wasserstein distance between generated and reference road-length distributions is strictly below 0.05
+3. The graph is connected
+4. The graph contains a closed outer boundary
+5. The graph contains polygonal interior regions suitable for Voronoi refinement
+
+If the Wasserstein metric is 0.05 or higher, the graph is invalid and must be revised.
+
+STRUCTURAL GUIDANCE
+
+The graph should resemble a connected mesh of polygonal regions enclosed by an outer ring.
+
+Good structures include:
+- irregular polygon meshes,
+- triangulation-like layouts,
+- nested polygonal structures,
+- networks with a clear outer perimeter and internal subdivisions.
+
+Bad structures include:
+- trees,
+- star graphs,
+- long linear chains,
+- disconnected components,
+- open boundaries,
+- graphs with many dangling edges and few closed cycles.
+
+A small number of dead ends is acceptable, but they should be rare.
+
+PLANARITY STRATEGY
+
+- Start by creating a closed outer boundary.
+- Add internal edges gradually.
+- Prefer local subdivisions that form polygons.
+- If an added edge breaks planarity, remove it and try a different connection.
+- Avoid geometric crossings at all times.
+
+ADJUSTMENT STRATEGY
+
+Do not regenerate the entire graph from scratch unless necessary.
+
+Prefer small targeted modifications such as:
+- moving one or two nodes,
+- adding or removing a single edge,
+- adjusting part of the outer boundary,
+- refining one local polygonal region.
+
+If planarity fails:
+- remove or reroute the offending edge.
+
+If the Wasserstein metric is too high:
+- adjust node positions to change edge lengths,
+- add or remove selected edges,
+- revise local geometry while preserving connectivity and planarity.
+
+A metric near 0.05 indicates that only small adjustments may be needed.
+
+REALISM REQUIREMENTS
+
+- The graph should reflect the style of the reference structure without duplicating it.
+- Use original node coordinates.
+- Avoid perfect grids or perfectly regular lattices.
+- Introduce slight irregularities in geometry.
+- Preserve the general scale and distribution of road lengths seen in the reference.
+
+OUTPUT FORMAT
+
+Return the graph in the following format:
+
+{"level1": [[[x1, y1], [x2, y2], ...], [[i1, j1], [i2, j2], ...]]}
+
+where:
+- the first list contains node coordinates,
+- the second list contains edges as pairs of node indices.
+
+Use numeric values, not strings.
+
+IMPORTANT
+
+- Always compute validation metrics from the generated graph.
+- Never copy road lengths from the reference.
+- Never save a graph unless both planarity and Wasserstein conditions are satisfied.
+- A valid smaller graph is preferable to a larger invalid one.
+- Originality, connectivity, closed boundary structure, and polygonal form are all mandatory.
